@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Absensi Tukang & Stok Material Harian</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <script src="html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+  <!-- Layout Utama dengan Menu di Sebelah Kiri -->
+  <div class="app-layout">
+
+    <!-- Sidebar Menu Kiri (Desktop) -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 18h20"/>
+              <path d="M4 18v-3a8 8 0 0 1 16 0v3"/>
+              <path d="M12 4v7"/>
+              <path d="M9 11h6"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1 id="header-company">PT KARYA CIPTA KONSTRUKSI</h1>
+            <p id="header-project">Proyek Pembangunan Gedung & Hunian</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section-title">MENU UTAMA</div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="tab-dashboard">
+          <i data-feather="pie-chart" style="width: 16px;"></i> <span>Halaman Utama</span>
+        </button>
+        <button class="nav-item" data-tab="tab-attendance">
+          <i data-feather="check-square" style="width: 16px;"></i> <span>Absensi Tukang</span>
+        </button>
+        <button class="nav-item" data-tab="tab-materials">
+          <i data-feather="layers" style="width: 16px;"></i> <span>Stok Material</span>
+        </button>
+        <button class="nav-item" data-tab="tab-workers">
+          <i data-feather="users" style="width: 16px;"></i> <span>Master Tukang</span>
+        </button>
+        <button class="nav-item" data-tab="tab-payroll">
+          <i data-feather="dollar-sign" style="width: 16px;"></i> <span>Rekap Upah</span>
+          <span class="nav-badge"><i data-feather="lock" style="width: 10px; height: 10px;"></i> PIN</span>
+        </button>
+        <button class="nav-item" data-tab="tab-settings">
+          <i data-feather="settings" style="width: 16px;"></i> <span>Pengaturan</span>
+          <span class="nav-badge"><i data-feather="lock" style="width: 10px; height: 10px;"></i> PIN</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sync-badge" title="Status Sistem">
+          <span class="pulse-dot"></span>
+          <span id="sync-text">Sistem Online</span>
+        </div>
+        <button class="btn-icon" id="btn-theme-toggle" title="Ubah Tema Gelap/Terang">
+          <i data-feather="moon" id="theme-icon"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Konten Utama Kanan -->
+    <div class="app-content-wrapper">
+      
+      <!-- Header Mobile (Hanya tampil di HP / Layar Sempit) -->
+      <header class="mobile-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 18h20"/>
+              <path d="M4 18v-3a8 8 0 0 1 16 0v3"/>
+              <path d="M12 4v7"/>
+              <path d="M9 11h6"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1 id="mobile-header-company">PT KARYA CIPTA KONSTRUKSI</h1>
+            <p id="mobile-header-project">Proyek Gedung & Hunian</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn-icon" id="btn-theme-toggle-mobile" title="Ubah Tema Gelap/Terang">
+            <i data-feather="moon" id="theme-icon-mobile"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <main class="main-content">
+
+    <!-- 1. TAB: DASHBOARD (HALAMAN UTAMA) -->
+    <section id="tab-dashboard" class="tab-pane active">
+      <div class="unified-page-header">
+        <div class="header-info">
+          <h2 class="section-title">Ringkasan Hari Ini</h2>
+          <p class="section-desc" id="dashboard-date-display">Senin, 26 Oktober 2026</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-pdf btn-sm" id="btn-download-pdf-attendance" title="Unduh Laporan Absensi Hari Ini">
+            <i data-feather="file-text" style="width: 14px;"></i> Unduh PDF Absensi
+          </button>
+          <button class="btn btn-pdf btn-sm" id="btn-download-pdf-material" title="Unduh Laporan Stok Material Hari Ini">
+            <i data-feather="package" style="width: 14px;"></i> Unduh PDF Stok
+          </button>
+        </div>
+      </div>
+
+      <!-- Warning Low Stock Box -->
+      <div id="low-stock-alert-container"></div>
+
+      <!-- Submitter & Corrector Card Banner -->
+      <div class="card" style="margin-bottom: 1rem; padding: 0.75rem 1rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.82rem;" id="dash-attendance-submitter">
+            <span style="color: var(--text-light);"><i data-feather="clock" style="width: 13px;"></i> Belum diproses hari ini</span>
+          </div>
+          <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);" id="dash-total-overall-badge">
+            Total Tukang Hadir: <span style="color: var(--primary); font-size: 0.95rem; font-weight: 700;" id="dash-total-present">0</span> Orang
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 KARTU STATUS KEHADIRAN: TK BESI, TUKANG KAYU, TUKANG (BATU & TENAGA), MEP -->
+      <div class="grid-cards" id="dash-category-cards" style="margin-bottom: 1rem;">
+        <!-- Card 1: TK Besi (Icon Besi / I-Beam Baja) -->
+        <div class="card">
+          <div class="card-header-flex">
+            <span class="card-title-sm" style="color: #0284c7;">TK Besi</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16M4 20h16M12 4v16M7 4v3M17 4v3M7 17v3M17 17v3"/>
+            </svg>
+          </div>
+          <div class="card-stat" id="stat-count-besi">0 <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">Orang</span></div>
+          <div class="card-subtext" id="stat-delta-besi">
+            <span>Tukang Besi & Perakitan</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Tukang Kayu (Icon Pohon) -->
+        <div class="card">
+          <div class="card-header-flex">
+            <span class="card-title-sm" style="color: #d97706;">Tukang Kayu</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L5 11h4l-3 6h6v4h2v-4h6l-3-6h4L12 2z"/>
+            </svg>
+          </div>
+          <div class="card-stat" id="stat-count-kayu">0 <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">Orang</span></div>
+          <div class="card-subtext" id="stat-delta-kayu">
+            <span>Bekisting & Kayu</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Tukang (Murni Tk Batu & Tenaga) - Icon Topi Proyek -->
+        <div class="card">
+          <div class="card-header-flex">
+            <span class="card-title-sm" style="color: #059669;">Tukang</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 18h20"/>
+              <path d="M4 18v-3a8 8 0 0 1 16 0v3"/>
+              <path d="M12 4v7"/>
+              <path d="M9 11h6"/>
+            </svg>
+          </div>
+          <div class="card-stat" id="stat-count-tukang">0 <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">Orang</span></div>
+          <div class="card-subtext" id="stat-delta-tukang">
+            <span>Tk Batu & Tenaga</span>
+          </div>
+        </div>
+
+        <!-- Card 4: MEP (Elektrikal, Plumbing, Mekanikal) - Icon Kunci Pipa -->
+        <div class="card">
+          <div class="card-header-flex">
+            <span class="card-title-sm" style="color: #7c3aed;">MEP</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Rahang Atas Kunci Pipa (Hook Jaw) -->
+              <path d="M8 2h8a1.5 1.5 0 0 1 1.5 1.5v6a1 1 0 0 1-1 1h-3.5"/>
+              <!-- Rahang Bawah Kunci Pipa (Heel Jaw) -->
+              <path d="M7 11V6h4"/>
+              <path d="M14 6h-2"/>
+              <!-- Baut Penyetel (Adjustment Nut) -->
+              <rect x="7" y="11" width="6" height="3" rx="0.5"/>
+              <!-- Gagang Kunci Pipa Kokoh -->
+              <path d="M8.5 14v6.5a1.5 1.5 0 0 0 3 0V14"/>
+            </svg>
+          </div>
+          <div class="card-stat" id="stat-count-mep">0 <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">Orang</span></div>
+          <div class="card-subtext" id="stat-delta-mep">
+            <span>Elektrikal, Plumbing, Mekanikal</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Arus Material Masuk vs Keluar (Tren 7 Hari)</h3>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Data Historis</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartMaterialMovement"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Distribusi Spesialis Tukang</h3>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Proporsi Kehadiran</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="chartWorkerSpecialists"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAPORAN PEKERJAAN HARIAN SIMPEL: Nama, Jabatan, Pekerjaan -->
+      <div class="card">
+        <div class="card-header-flex" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+          <h3 style="font-size: 0.92rem; font-weight: 700;">Laporan Pekerjaan Hari Ini</h3>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Mengikuti Absensi Tukang Hari Ini</span>
+        </div>
+        <div class="table-responsive" style="margin-bottom: 0;">
+          <table class="data-table" id="table-simple-jobs">
+            <thead>
+              <tr>
+                <th style="width: 35px;">No</th>
+                <th>Nama</th>
+                <th>Jabatan</th>
+                <th>Pekerjaan</th>
+              </tr>
+            </thead>
+            <tbody id="dash-simple-jobs-tbody">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. TAB: ABSENSI TUKANG -->
+    <section id="tab-attendance" class="tab-pane">
+      <div class="unified-page-header">
+        <div class="header-info">
+          <h2 class="section-title">Absensi Harian Tukang</h2>
+          <p class="section-desc">
+            Lembur paten: <strong>Hadir = 2 Jam</strong>, <strong>½ Hari = 1 Jam</strong>, <strong>Absen = 0 Jam</strong>. Tabel stabil & terkelompok per Mandor.
+          </p>
+        </div>
+        
+        <div class="header-actions">
+          <input type="date" id="attendance-date-picker" class="table-input" style="width: auto; padding: 0 0.6rem; font-weight: 600; height: 34px;">
+          <button class="btn btn-pdf btn-sm" id="btn-download-pdf-attendance-page" style="height: 34px;" title="Unduh PDF Absensi Harian">
+            <i data-feather="file-text" style="width: 14px;"></i> Unduh PDF Absensi
+          </button>
+        </div>
+      </div>
+
+      <!-- Bar Status & Aksi Absensi Tepat di Atas Tabel (Sebelah Kanan: Koreksi / Simpan Ulang) -->
+      <div class="card" style="margin-bottom: 1rem; padding: 0.65rem 1rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+          <div id="attendance-session-info" style="font-size: 0.82rem; color: var(--text-main); display: flex; align-items: center; gap: 0.45rem;">
+            <i data-feather="clock" style="color: var(--text-muted); width: 15px;"></i>
+            <span style="color: var(--text-muted);">Absensi hari ini belum diproses</span>
+          </div>
+          <div>
+            <button class="btn btn-primary btn-sm" id="btn-process-attendance" style="height: 34px; padding: 0 0.95rem;">
+              <i data-feather="check-circle" style="width: 14px;"></i> <span id="btn-process-text">Proses Absen Hari Ini</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Container Tabel Absensi Per Grup Mandor -->
+      <div id="attendance-mandor-groups-container">
+        <!-- Populated via JS -->
+      </div>
+    </section>
+
+    <!-- 3. TAB: STOK MATERIAL (HEADER SORTING & KODE WARNA TRANSPARAN) -->
+    <section id="tab-materials" class="tab-pane">
+      <div class="unified-page-header">
+        <div class="header-info">
+          <h2 class="section-title">Laporan Stok Material Harian</h2>
+          <p class="section-desc">
+            <i data-feather="clock" style="width: 13px; height: 13px; vertical-align: middle; margin-right: 3px;"></i> Data otomatis diperbarui setiap hari pada pukul 07:00 WIB, dengan sisa stok hari ini otomatis beralih menjadi stok kemarin.
+          </p>
+        </div>
+        
+        <div class="header-actions">
+          <button class="btn btn-primary btn-sm" id="btn-add-material-modal" style="height: 32px;">
+            <i data-feather="plus" style="width: 14px;"></i> Tambah Material Baru
+          </button>
+          <button class="btn btn-pdf btn-sm" id="btn-download-pdf-material-page" style="height: 32px;" title="Unduh PDF Laporan Stok Material Hari Ini">
+            <i data-feather="package" style="width: 14px;"></i> Unduh PDF Stok
+          </button>
+          <button class="btn btn-pdf btn-sm" id="btn-download-pdf-material-yesterday" style="height: 32px;" title="Unduh rekapitulasi data stok material hari kemarin">
+            <i data-feather="calendar" style="width: 14px;"></i> Rekapan Hari Kemarin (PDF)
+          </button>
+        </div>
+      </div>
+
+      <!-- Category Filter Tabs: MENYALA JELAS -->
+      <div style="display: flex; gap: 0.4rem; margin-bottom: 0.85rem; overflow-x: auto; padding-bottom: 0.25rem;">
+        <button class="btn btn-outline btn-sm mat-cat-btn active" data-category="ALL">Semua Kategori</button>
+        <button class="btn btn-outline btn-sm mat-cat-btn" data-category="Struktur">Struktur</button>
+        <button class="btn btn-outline btn-sm mat-cat-btn" data-category="Arsitektur">Arsitektur</button>
+        <button class="btn btn-outline btn-sm mat-cat-btn" data-category="MEP">MEP</button>
+        <button class="btn btn-outline btn-sm mat-cat-btn" data-category="Inventaris Kantor">Inventaris Kantor</button>
+      </div>
+
+      <!-- Materials Table: SORTABLE HEADERS & SATUAN SETELAH SISA STOK -->
+      <div class="table-responsive">
+        <table class="data-table" id="materials-table">
+          <thead>
+            <tr>
+              <th style="width: 35px;">No</th>
+              <th class="sortable-th" data-sort-key="category">Kategori <span class="sort-icon">⇅</span></th>
+              <th class="sortable-th" data-sort-key="name">Nama Barang <span class="sort-icon">⇅</span></th>
+              <th class="sortable-th" data-sort-key="stock_yesterday" style="text-align: right;">Stok Kemarin <span class="sort-icon">⇅</span></th>
+              <th class="sortable-th" data-sort-key="in_today" style="text-align: center; color: var(--success);">Masuk <span class="sort-icon">⇅</span></th>
+              <th class="sortable-th" data-sort-key="out_today" style="text-align: center; color: var(--danger);">Keluar <span class="sort-icon">⇅</span></th>
+              <th class="sortable-th" data-sort-key="stock_today" style="text-align: right; font-weight: 700;">Sisa Stok <span class="sort-icon">⇅</span></th>
+              <th style="text-align: center;">Satuan</th>
+              <th style="text-align: center;">Status</th>
+              <th style="text-align: center;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="materials-tbody">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. TAB: MASTER TUKANG -->
+    <section id="tab-workers" class="tab-pane">
+      <div class="unified-page-header">
+        <div class="header-info">
+          <h2 class="section-title">Data Master Tukang</h2>
+          <p class="section-desc">Mandor adalah status (bintang ⭐) yang memiliki grup sendiri sesuai profesinya.</p>
+        </div>
+        
+        <div class="header-actions">
+          <button class="btn btn-outline btn-sm" id="btn-unlock-wages" style="height: 32px;">
+            <i data-feather="lock" style="width: 13px;" id="icon-wage-lock"></i> <span id="btn-unlock-wages-text">Buka Rincian Upah</span>
+          </button>
+          <button class="btn btn-outline btn-sm" id="btn-open-archive" style="height: 32px;">
+            <i data-feather="archive" style="width: 13px;"></i> Data Tukang Lama (Arsip)
+          </button>
+          <button class="btn btn-primary btn-sm" id="btn-add-worker-modal" style="height: 32px;">
+            <i data-feather="user-plus" style="width: 14px;"></i> Tambah Tukang
+          </button>
+        </div>
+      </div>
+
+      <!-- Container Tabel Master Tukang Per Grup Mandor -->
+      <div id="workers-mandor-groups-container">
+        <!-- Populated per Mandor group via JS -->
+      </div>
+    </section>
+
+    <!-- 5. TAB: REKAP UPAH MINGGUAN (TOTAL UPAH DI PALING ATAS & MANDOR GABUNG DENGAN TIM) -->
+    <section id="tab-payroll" class="tab-pane">
+      <div id="payroll-locked-view" class="pin-locked-screen">
+        <div class="pin-locked-card">
+          <div style="width: 48px; height: 48px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto;">
+            <i data-feather="lock" style="width: 24px; height: 24px;"></i>
+          </div>
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem;">Akses Upah Terproteksi</h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+            Upah tukang bersifat rahasia. Masukkan PIN Admin untuk melihat rekap upah & kasbon mingguan.
+          </p>
+          <div style="display: flex; gap: 0.5rem; justify-content: center;">
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" id="input-payroll-pin" maxlength="6" placeholder="Ketik PIN" class="text-input pin-masked-input" autocomplete="off" data-lpignore="true" style="max-width: 150px; text-align: center; letter-spacing: 0.25em; font-size: 1.1rem;">
+            <button class="btn btn-primary btn-sm" id="btn-verify-payroll-pin">Buka</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="payroll-unlocked-view" style="display: none;">
+        <!-- UNIFIED PAGE HEADER: POSISI KONSISTEN DI PALING ATAS -->
+        <div class="unified-page-header">
+          <div class="header-info">
+            <h2 class="section-title">Rekap Upah Mingguan</h2>
+            <p class="section-desc">
+              <i data-feather="clock" style="width: 12px; height: 12px; vertical-align: middle; color: var(--primary);"></i> Auto-Reset siklus mingguan: Tiap Hari Minggu pukul 07:00 WIB
+            </p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-pdf btn-sm" id="btn-download-pdf-payroll" style="height: 32px;" title="Cetak Rekap & Slip Upah Mingguan">
+              <i data-feather="printer" style="width: 14px;"></i> Cetak Slip Upah (PDF)
+            </button>
+          </div>
+        </div>
+
+        <!-- KARTU RINGKASAN TOTAL UPAH -->
+        <div class="card" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; margin-bottom: 1.25rem; border: none; box-shadow: var(--shadow-md);">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+            <div>
+              <div style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.9;">Total Upah Bersih Minggu Ini (Uang Tunai Siap Bayar)</div>
+              <div style="font-size: 1.95rem; font-weight: 800; line-height: 1.2; margin-top: 0.2rem;" id="payroll-grand-total-net">Rp 0</div>
+              <div style="font-size: 0.76rem; opacity: 0.85; margin-top: 0.2rem;" id="payroll-range-text">Periode: Minggu s/d Sabtu</div>
+            </div>
+            <div style="display: flex; gap: 1.5rem; background: rgba(0,0,0,0.18); padding: 0.65rem 1rem; border-radius: var(--radius-sm);">
+              <div>
+                <div style="font-size: 0.7rem; opacity: 0.85; text-transform: uppercase;">Total Upah Kotor</div>
+                <div style="font-size: 1.05rem; font-weight: 700;" id="payroll-grand-total-gross">Rp 0</div>
+              </div>
+              <div style="border-left: 1px solid rgba(255,255,255,0.25); padding-left: 1.5rem;">
+                <div style="font-size: 0.7rem; opacity: 0.85; text-transform: uppercase;">Potongan Kasbon</div>
+                <div style="font-size: 1.05rem; font-weight: 700; color: #fecaca;" id="payroll-grand-total-loan">-Rp 0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 0.85rem;">
+          <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main);">Rincian Pembagian Upah per Grup Mandor (Mandor & Tim Menyatu)</h3>
+        </div>
+
+        <div id="payroll-mandor-groups">
+          <!-- Populated per mandor via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. TAB: PENGATURAN (GEMBOK PIN & RIWAYAT REKAP UPAH) -->
+    <section id="tab-settings" class="tab-pane">
+      <div id="settings-locked-view" class="pin-locked-screen">
+        <div class="pin-locked-card">
+          <div style="width: 48px; height: 48px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto;">
+            <i data-feather="lock" style="width: 24px; height: 24px;"></i>
+          </div>
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem;">Pengaturan Terproteksi</h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+            Pengaturan sistem & riwayat rekap upah hanya dapat diakses dengan PIN Admin.
+          </p>
+          <div style="display: flex; gap: 0.5rem; justify-content: center;">
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" id="input-settings-pin" maxlength="6" placeholder="Ketik PIN" class="text-input pin-masked-input" autocomplete="off" data-lpignore="true" style="max-width: 150px; text-align: center; letter-spacing: 0.25em; font-size: 1.1rem;">
+            <button class="btn btn-primary btn-sm" id="btn-verify-settings-pin">Buka</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="settings-unlocked-view" style="display: none;">
+        <div class="unified-page-header">
+          <div class="header-info">
+            <h2 class="section-title">Pengaturan Sistem & Riwayat</h2>
+            <p class="section-desc">Identitas proyek, keamanan PIN admin, dan arsip riwayat rekap upah mingguan.</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-outline btn-sm" id="btn-refresh-payroll-history" style="height: 32px;" title="Muat Ulang Riwayat Rekap Upah">
+              <i data-feather="refresh-cw" style="width: 13px;"></i> Refresh Riwayat
+            </button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; align-items: start;">
+          <!-- Kartu Pengaturan Aplikasi -->
+          <div class="card">
+            <div class="card-header-flex" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.85rem;">
+              <h3 style="font-size: 0.95rem; font-weight: 700;">Identitas Proyek & PIN Keamanan</h3>
+            </div>
+            <form id="form-settings" autocomplete="off">
+              <div class="form-group">
+                <label>Nama Perusahaan / Kontraktor</label>
+                <input type="text" id="setting-company-name" class="text-input" required>
+              </div>
+              <div class="form-group">
+                <label>Nama Proyek</label>
+                <input type="text" id="setting-project-name" class="text-input" required>
+              </div>
+              <div class="form-group">
+                <label>Ganti PIN Admin (Buka Upah, Pengaturan, & Arsip)</label>
+                <input type="tel" inputmode="numeric" pattern="[0-9]*" id="setting-admin-pin" class="text-input pin-masked-input" placeholder="Ketik PIN Baru" autocomplete="off" data-lpignore="true">
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 0.4rem;">
+                <i data-feather="save" style="width: 14px;"></i> Simpan Pengaturan
+              </button>
+            </form>
+          </div>
+
+          <!-- Kartu Riwayat Rekap Upah per Periode -->
+          <div class="card">
+            <div class="card-header-flex" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.85rem;">
+              <div>
+                <h3 style="font-size: 0.95rem; font-weight: 700;">Riwayat Rekap Upah per Periode</h3>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Hanya menampilkan periode yang memiliki data kehadiran</span>
+              </div>
+            </div>
+            
+            <div id="settings-payroll-history-container">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+      </main> <!-- /main.main-content -->
+    </div> <!-- /app-content-wrapper -->
+  </div> <!-- /app-layout -->
+
+  <!-- Mobile Bottom Navigation -->
+  <div class="mobile-nav">
+    <button class="mobile-nav-item active" data-tab="tab-dashboard">
+      <i data-feather="pie-chart" style="width: 17px; height: 17px;"></i>
+      <span>Utama</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="tab-attendance">
+      <i data-feather="check-square" style="width: 17px; height: 17px;"></i>
+      <span>Absen</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="tab-materials">
+      <i data-feather="layers" style="width: 17px; height: 17px;"></i>
+      <span>Material</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="tab-workers">
+      <i data-feather="users" style="width: 17px; height: 17px;"></i>
+      <span>Tukang</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="tab-payroll">
+      <i data-feather="dollar-sign" style="width: 17px; height: 17px;"></i>
+      <span>Upah</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="tab-settings">
+      <i data-feather="settings" style="width: 17px; height: 17px;"></i>
+      <span>Setting</span>
+    </button>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. Modal: Proses Absen & Koreksi -->
+  <div class="modal-overlay" id="modal-process-attendance">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-process-title">Konfirmasi Proses Absensi</h3>
+        <button class="btn-icon btn-close-modal"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.85rem;" id="modal-process-desc">
+          Harap cantumkan nama lengkap Anda sebagai bukti pertanggungjawaban absensi hari ini.
+        </p>
+        <div class="form-group">
+          <label id="lbl-submitter-name">Nama Petugas (Wajib diisi):</label>
+          <input type="text" id="input-submitter-name" class="text-input" placeholder="Contoh: Budi Santoso" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm btn-close-modal">Batal</button>
+        <button class="btn btn-primary btn-sm" id="btn-confirm-process-attendance">
+          <i data-feather="check" style="width: 14px;"></i> Simpan & Terbitkan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Modal: Pilihan Lembur Khusus (+1 Hari, +2 Hari, +x Jam) -->
+  <div class="modal-overlay" id="modal-overtime-options">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Pilihan Jam / Hari Lembur</h3>
+        <button class="btn-icon btn-close-modal"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+          Tukang: <strong id="modal-ot-worker-name">-</strong>
+        </p>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; cursor: pointer;">
+            <input type="radio" name="ot-choice" value="normal" checked>
+            <span><strong>Lembur Standar Paten:</strong> 2 Jam (Hadir) / 1 Jam (½ Hari)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; cursor: pointer;">
+            <input type="radio" name="ot-choice" value="1_day">
+            <span><strong>Lembur 1 Hari Penuh:</strong> (+1 Hari upah, tapi -2 jam lembur di hari itu)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; cursor: pointer;">
+            <input type="radio" name="ot-choice" value="2_day">
+            <span><strong>Lembur 2 Hari Penuh:</strong> (+2 Hari upah tambahan)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; cursor: pointer;">
+            <input type="radio" name="ot-choice" value="custom_hours">
+            <span><strong>Lembur Kustom Jam:</strong> Tentukan jumlah jam lembur</span>
+          </label>
+        </div>
+
+        <div class="form-group" id="group-custom-ot-hours" style="display: none;">
+          <label>Jumlah Jam Lembur (Jam):</label>
+          <input type="number" id="input-custom-ot-hours" class="text-input" placeholder="Contoh: 3.5" min="0" max="24" step="0.5">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm btn-close-modal">Batal</button>
+        <button class="btn btn-primary btn-sm" id="btn-save-overtime-options">Terapkan Lembur</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Modal: Sakit & Input Bantuan Obat -->
+  <div class="modal-overlay" id="modal-sick-allowance">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Santunan / Bantuan Sakit</h3>
+        <button class="btn-icon btn-close-modal"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+          Tukang: <strong id="modal-sick-worker-name">-</strong>
+        </p>
+        <div class="form-group">
+          <label>Jumlah Bantuan Obat (Rp):</label>
+          <input type="number" id="input-sick-amount" class="text-input" placeholder="0" min="0" step="5000">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm btn-close-modal">Batal</button>
+        <button class="btn btn-primary btn-sm" id="btn-save-sick-allowance">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Modal: Input Kasbon Tukang -->
+  <div class="modal-overlay" id="modal-loan">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Pengajuan Kasbon Tukang</h3>
+        <button class="btn-icon btn-close-modal"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+          Tukang: <strong id="modal-loan-worker-name">-</strong> <span id="modal-loan-worker-id-badge" style="font-size: 0.74rem; color: var(--text-muted);"></span>
+        </p>
+        <div class="form-group">
+          <label>Jumlah Kasbon (Rp):</label>
+          <input type="number" id="input-loan-amount" class="text-input" placeholder="Contoh: 300000" min="10000" step="10000" required>
+        </div>
+        <div class="form-group">
+          <label>Termin Potong per Minggu (Rp):</label>
+          <input type="number" id="input-loan-weekly-term" class="text-input" placeholder="Contoh: 100000" min="5000" step="5000" required>
+          <div class="form-help">Nominal ini otomatis memotong total upah mingguan.</div>
+        </div>
+        <div class="form-group">
+          <label>Keperluan / Catatan:</label>
+          <input type="text" id="input-loan-note" class="text-input" placeholder="Misal: keperluan keluarga">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm btn-close-modal">Batal</button>
+        <button class="btn btn-primary btn-sm" id="btn-save-loan">Proses & Simpan Kasbon</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Modal: Tambah / Edit Tukang (DENGAN BINTANG MANDOR ⭐) -->
+  <div class="modal-overlay" id="modal-worker-form">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-worker-title">Tambah Tukang Baru</h3>
+        <button class="btn-icon btn-close-modal"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-worker" autocomplete="off">
+          <input type="hidden" id="worker-edit-id">
+          
+          <div class="form-group">
+            <label>Nama Tukang & Status Mandor:</label>
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+              <input type="text" id="worker-name" class="text-input" placeholder="Nama lengkap tukang..." required>
+              <button type="button" class="btn-star-mandor" id="btn-toggle-mandor-star" title="Klik untuk jadikan Mandor (memiliki grup sendiri)">
+                <span id="star-icon">☆</span> <span id="star-text">Mandor</span>
+              </button>
+            </div>
+            <div class="form-help">Jika bintang diaktifkan (⭐), tukang ini menjadi Mandor dan memiliki grup tersendiri.</div>
+          </div>
+
+          <div class="form-group">
+            <label>Spesialisasi / Keahlian Profesi:</label>
+            <select id="worker-specialist" class="select-input" required>
+              <option value="Tukang Besi">Tukang Besi</option>
+              <option value="Tukang Kayu">Tukang Kayu</option>
+              <option value="Tk Batu">Tk Batu</option>
+              <option value="Tenaga">Tenaga</option>
+              <option value="Elektrikal">Elektrikal</option>
+              <option value="Plumbing">Plumbing</option>
+              <option value="Mekanikal">Mekanikal</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="group-mandor-pembina">
+            <label>Grup Mandor Pembina:</label>
+            <select id="worker-mandor-id" class="select-input">
+              <option value="">-- Tukang Mandiri / Non-Grup --</option>
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Upah Harian (Rp):</label>
+            <input type="number" id="worker-daily-wage" class="text-input" placeholder="0" min="0" step="5000" required>
+          </div>
+          <div class="form-group">
+            <label>Upah per Jam Ekstra (Rp):</label>
+            <input type="number" id="worker-hourly-rate" class="text-input" placeholder="0" min="0" step="1000" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm btn-close-modal">Batal</button>
+        <button class="btn btn-primary btn-sm" id="btn-save-worker">Simpan Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Modal: Data Tukang Lama (Arsip) -->
+  <div class="modal-overlay" id="modal-archived-workers">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Arsip Data Tukang Lama</h3>
+        <button class="btn-icon btn-close-modal"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.65rem;">
+          Daftar tukang yang dihapus. Klik tombol "Kembalikan" untuk mengaktifkan kembali.
+        </p>
+        <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Spesialis</th>
+                <th>Tanggal Dihapus</th>
+                <th style="text-align: center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="archived-workers-tbody">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm btn-close-modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Modal: Tambah / Edit Material -->
+  <div class="modal-overlay" id="modal-material-form">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-material-title">Tambah Material Baru</h3>
+        <button class="btn-icon btn-close-modal"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-material" autocomplete="off">
+          <input type="hidden" id="material-edit-id">
+          <div class="form-group">
+            <label>Kategori:</label>
+            <select id="material-category" class="select-input" required>
+              <option value="Struktur">Struktur</option>
+              <option value="Arsitektur">Arsitektur</option>
+              <option value="MEP">MEP</option>
+              <option value="Inventaris Kantor">Inventaris Kantor</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Nama Barang:</label>
+            <input type="text" id="material-name" class="text-input" placeholder="Contoh: Besi Beton 16mm" required>
+          </div>
+          <div class="form-group">
+            <label>Satuan Barang:</label>
+            <input type="text" id="material-unit" class="text-input" placeholder="Contoh: Sak, Btg, Kg, M3, Dus, Pcs" required>
+          </div>
+          <div class="form-group" id="group-material-init-stock">
+            <label>Stok Awal:</label>
+            <input type="number" id="material-stock-initial" class="text-input" placeholder="0" min="0" step="any" required>
+          </div>
+          <div class="form-group">
+            <label>Batas Stok Minimum (Low Stock):</label>
+            <input type="number" id="material-min-stock" class="text-input" placeholder="Contoh: 15" min="0" step="any">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm btn-close-modal">Batal</button>
+        <button class="btn btn-primary btn-sm" id="btn-save-material">Simpan Material</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Modal: Verifikasi PIN Admin -->
+  <div class="modal-overlay" id="modal-pin-prompt">
+    <div class="modal-card" style="max-width: 360px;">
+      <div class="modal-header">
+        <h3 id="modal-pin-title">Verifikasi PIN Admin</h3>
+        <button class="btn-icon btn-close-modal"><i data-feather="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.85rem;" id="modal-pin-desc">
+          Masukkan PIN 4 digit untuk membuka data ini.
+        </p>
+        <div class="form-group">
+          <input type="tel" inputmode="numeric" pattern="[0-9]*" id="input-modal-pin" maxlength="6" class="text-input pin-masked-input" placeholder="Ketik PIN" autocomplete="off" data-lpignore="true" style="text-align: center; font-size: 1.15rem; letter-spacing: 0.25em;" autofocus>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm btn-close-modal">Batal</button>
+        <button class="btn btn-primary btn-sm" id="btn-submit-modal-pin">Verifikasi</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <div id="print-area" class="print-only"></div>
+
+  <script src="app.js"></script>
+  <script>
+    feather.replace();
+  </script>
+</body>
+</html>
